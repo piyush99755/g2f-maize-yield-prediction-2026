@@ -98,5 +98,41 @@ This journal records chronological development milestones, technical concepts, i
 
 ### Lessons Learned & Next Steps
 - **Resource Planning Note:** With `15.85 GB` system RAM (`2.63 GB` currently free), `6 GB` GPU VRAM, and `~21 GB` free disk space on `C:`, future Phase 2+ workflows should use memory-efficient formats (Parquet/PyArrow, compact numeric dtypes, chunked genomic loading), monitor disk usage carefully before caching large datasets or pretrained checkpoints, and close unnecessary background applications prior to heavy runs.
-- **Next Step:** Phase 1 verification is complete. Await user approval before beginning Phase 2 (Data Ingestion & Exploratory Data Analysis).
+- **Next Step:** Phase 1 verification is complete. Proceed to Phase 2.1 (Training Dataset Inventory) upon approval.
+
+---
+
+## 2026-11-26 — Phase 2.1: Training Dataset Inventory
+
+### Context & Objective
+- Performed a strictly read-only filesystem metadata inventory of `data/raw/training/` after the raw competition training folder was copied locally.
+- Verified file counts, sizes, nested paths, compression states, likely dataset categories (distinguishing verified metadata from filename assumptions), hardware/memory/storage constraints, recommended loading strategies, and Git ignore safety.
+
+### Key Findings (Verified Filesystem Metadata)
+- **Location:** All 9 dataset files reside inside `data/raw/training/Training_Data-20261123T123657Z-1-001/Training_Data/`.
+- **Total Files & Storage:** **9 files** totaling **571.07 MB (MiB)** / **0.5577 GB (GiB)** (`598,808,324 bytes`; `598.81 MB` SI).
+  - Tabular `.csv` files (6 files): `53.96 MB` combined — Trait (`35.54 MB`), Weather full-year (`11.64 MB`), Weather seasons-only (`6.10 MB`), EC (`0.54 MB`), Metadata (`0.11 MB`), Soil (`0.03 MB`).
+  - Genotype files (3 files): `517.11 MB` combined (~90.6% of total) — `2kSites.vcf` (`58.28 MB`), `2kSites_numeric.txt` (`41.38 MB`), and gzip-compressed `400kSites.vcf.gz` (`417.45 MB`).
+- **Documentation Files:** None present inside `data/raw/training/`.
+- **Updated Free Disk Space (`C:`):** `20.49 GB` available (`464.04 GB` total).
+- **Full Inventory Document:** Recorded in [docs/DATASET_INVENTORY.md](DATASET_INVENTORY.md).
+
+### Hardware Risks & Notable Filename Observations
+- **Primary Memory/Storage Risk:** `5_Genotype_Data_All_2014_2027_hybrids_400kSites.vcf.gz` (`417.45 MB` compressed) must **not** be extracted to uncompressed `.vcf` on disk (given only `20.49 GB` free on `C:`) and must **not** be loaded as a dense `float64`/string DataFrame into RAM (`15.85 GB` total; `2.63 GB` free during Phase 1 check). It requires chunked streaming directly from `.vcf.gz` with `int8`/`uint8` encoding.
+- **Filename Observations to Verify in Phase 2.2:**
+  - Soil filename covers `2015_2025` (omitting `2014`).
+  - Two weather datasets exist (`full_year` vs. `seasons_only`).
+  - Genotype filenames specify `All_2014_2027_hybrids`, requiring strict leakage safeguards when fitting any genotype preprocessing or dimensionality reduction.
+
+### Git Safety Verification
+- Verified all 9 dataset files individually via `git check-ignore -q --no-index` (`9/9` ignored).
+- Verified `git status -uall -s` reports zero untracked or staged training data files.
+
+### Errors, Debugging & Resolutions
+- None encountered during Phase 2.1.
+
+### Lessons Learned & Next Steps
+- Separating the 2k-site numeric genotype panel (`41.38 MB`) from the 400k-site `.vcf.gz` panel (`417.45 MB`) gives a practical two-tier path: rapid low-memory baselines on `2kSites_numeric.txt`, followed by chunked streaming representations on `400kSites.vcf.gz` once baseline CV is established.
+- **Next Step:** Await approval before proceeding to **Phase 2.2** (schema inspection and lightweight EDA). No data loading, extraction, preprocessing, EDA, or modeling has been performed.
+
 
