@@ -1,0 +1,158 @@
+# ==============================================================================
+# G2F Maize Yield Prediction 2026 — .gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Virtual environments
+# ------------------------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# ------------------------------------------------------------------------------
+# Python caches, build outputs, and test/type-checker artifacts
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# ------------------------------------------------------------------------------
+# Jupyter checkpoints and runtime artifacts
+# ------------------------------------------------------------------------------
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+.jupyter/
+
+# ------------------------------------------------------------------------------
+# Raw and processed competition datasets (preserve directory placeholders)
+# ------------------------------------------------------------------------------
+data/*
+!data/raw/
+!data/processed/
+!data/.gitkeep
+
+data/raw/*
+!data/raw/training/
+!data/raw/testing/
+!data/raw/.gitkeep
+
+data/raw/training/*
+!data/raw/training/.gitkeep
+
+data/raw/testing/*
+!data/raw/testing/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+# Prevent accidental commit of large tabular, genomic, or archive data anywhere
+*.parquet
+*.feather
+*.arrow
+*.vcf
+*.vcf.gz
+*.bcf
+*.hmp.txt
+*.bed
+*.bim
+*.fam
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.7z
+*.rar
+
+# ------------------------------------------------------------------------------
+# Generated model artifacts
+# ------------------------------------------------------------------------------
+*.pkl
+*.pickle
+*.joblib
+*.model
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.h5
+*.hdf5
+*.cbm
+*.lgb
+*.xgb
+*.rds
+*.rda
+
+# ------------------------------------------------------------------------------
+# Generated submission files (preserve directory placeholder)
+# ------------------------------------------------------------------------------
+submissions/*
+!submissions/.gitkeep
+
+# ------------------------------------------------------------------------------
+# Large generated experiment artifacts (preserve directory placeholder)
+# ------------------------------------------------------------------------------
+experiments/*
+!experiments/.gitkeep
+mlruns/
+wandb/
+lightning_logs/
+catboost_info/
+*.sqlite
+*.sqlite3
+*.db
+
+# ------------------------------------------------------------------------------
+# Environment variables and secrets
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+.secrets/
+
+# ------------------------------------------------------------------------------
+# Temporary, log, and OS/IDE files
+# ------------------------------------------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
