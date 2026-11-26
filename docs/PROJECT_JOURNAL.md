@@ -133,6 +133,33 @@ This journal records chronological development milestones, technical concepts, i
 
 ### Lessons Learned & Next Steps
 - Separating the 2k-site numeric genotype panel (`41.38 MB`) from the 400k-site `.vcf.gz` panel (`417.45 MB`) gives a practical two-tier path: rapid low-memory baselines on `2kSites_numeric.txt`, followed by chunked streaming representations on `400kSites.vcf.gz` once baseline CV is established.
-- **Next Step:** Await approval before proceeding to **Phase 2.2** (schema inspection and lightweight EDA). No data loading, extraction, preprocessing, EDA, or modeling has been performed.
+- **Next Step:** Proceed to Phase 2.2 (Phenotype and Trait Data EDA) upon approval.
+
+---
+
+## 2026-11-26 — Phase 2.2: Phenotype & Trait Data EDA
+
+### Context & Objective
+- Performed read-only exploratory data analysis exclusively on `1_Training_Trait_Data_2014_2025.csv` via [notebooks/01_trait_data_eda.ipynb](../notebooks/01_trait_data_eda.ipynb) using the `g2f-maize-2026` kernel.
+- Documented complete aggregate findings, leakage risks, and open questions in [docs/TRAIT_DATA_EDA.md](TRAIT_DATA_EDA.md) and saved 5 non-sensitive aggregate plots under `reports/figures/`.
+
+### Key Empirical Findings
+- **Scale & Loading:** `203,185` rows × `26` columns; loaded with Pandas C engine (`low_memory=False`) in `0.317 s` using `58.65 MB` deep RAM.
+- **Official EvalAI Target & Metric Verification:** Verified from `https://eval.ai/api/challenges/challenge/2742/` that `Yield_Mg_ha` is absolute grain yield in `Mg/ha` adjusted to `15.5%` moisture, and the competition metric is **average within-environment Pearson correlation ($r$)**.
+- **Target (`Yield_Mg_ha`):** `192,974` valid observations (`10,211` / `5.03%` missing, `0` non-numeric, `0` zero, `0` negative), range `0.4282–23.2680 Mg/ha`, mean `9.7504`, median `9.9179`, SD `3.1278`, IQR `4.2209` (`7.7062–11.9271`), skewness `-0.2164`, `982` IQR-flagged tail observations (`0.51%`, retained untouched).
+- **Missingness Patterns:** Highest missingness in `Root_Lodging_plants` (`35.13%`), `Stalk_Lodging_plants` (`28.14%`), `Silk_DAP_days` (`23.47%`), `Pollen_DAP_days` (`22.26%`), and `Twt_kg_m3` (`19.44%`). Missing target rate peaked in `2017` (`17.41%`) and environment `SCH1_2024` (`78.40%`), with `0` environments having `100%` missing targets. Raw CSV missing tokens are strictly `"NA"` or `""`; `Plot == 999` (`57` rows) is a legitimate sequential plot number, not a sentinel code.
+- **Granularity & Replicates:** `0` exact duplicate rows; `(Env, Experiment, Replicate, Block, Plot)` uniquely identifies all `203,185` field plots. Across `321` environments and `6,203` hybrids, there are `132,635` unique `(Env, Hybrid)` combinations (`56,233` / `42.40%` genuinely replicated; `128,597` / `96.96%` with ≥1 valid yield; `4,038` / `3.04%` with 0 valid yields).
+- **Temporal & Variance Structure:** Complete `2014–2025` coverage (24–30 environments/year). Plot-level yield variance decomposes into **`57.37%` between-environment** and **`42.63%` within-environment**.
+- **Leakage Risks:** Flagged 10 co-measured harvest/in-season trait columns (`Date_Harvested`, `Grain_Moisture`, `Twt_kg_m3`, `Stand_Count_plants`, `Pollen_DAP_days`, `Silk_DAP_days`, `Plant_Height_cm`, `Ear_Height_cm`, `Root_Lodging_plants`, `Stalk_Lodging_plants`) as prohibited direct inputs due to severe post-harvest / in-season leakage risk.
+
+### Errors, Debugging & Resolutions
+- **Windows CLI command-length limit:** Passing the full notebook-generation script inline via PowerShell triggered `The filename or extension is too long`. Resolved by writing the generator to a temporary scratch script outside the repository and executing it via `.venv\Scripts\python.exe`.
+- **Matplotlib 3.11 deprecation warning:** First execution emitted `MatplotlibDeprecationWarning` for `boxplot(..., vert=True)`. Updated to `orientation="vertical"` and re-executed cleanly from a fresh kernel with zero warnings/errors.
+- **Notebook raw-record output hygiene:** After confirming all 19 code cells executed cleanly from a fresh kernel, cleared outputs on the 2 cells displaying raw competition rows (`preview_df` and `df.head(5)`) and verified zero raw plot records remain in the committed `.ipynb`.
+
+### Lessons Learned & Next Steps
+- Because `57.37%` of plot-level yield variance is between-environment while the EvalAI leaderboard scores **within-environment Pearson $r$**, Phase 3 CV and baseline modeling must evaluate within-environment ranking directly rather than relying solely on global RMSE/$R^2$.
+- **Next Step:** Await approval before proceeding to **Phase 2.3** (inspection of remaining training tables: metadata, soil, weather, EC, and genotype files).
+
 
 
