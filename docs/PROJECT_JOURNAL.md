@@ -44,4 +44,59 @@ This journal records chronological development milestones, technical concepts, i
 
 ### Lessons Learned & Next Steps
 - Always verify interpreter binaries directly before building virtual environments rather than relying solely on `py -0p` registry listings.
-- **Next Step:** Await approval to begin Phase 2 (Data Ingestion & Exploratory Data Analysis). No data processing, EDA, feature engineering, or model training has been performed.
+- **Next Step:** Complete remaining Phase 1 verification checks (Jupyter kernel execution, dependency verification, Git safety audit, and hardware assessment) before moving to Phase 2.
+
+---
+
+## 2026-11-26 — Phase 1: Environment Verification & Hardware Assessment
+
+### Context & Objective
+- Completed the remaining Phase 1 verification checks to confirm end-to-end Jupyter kernel execution, exact dependency alignment with `requirements.txt`, Git repository safety, and local hardware capacity prior to Phase 2.
+
+### Verification Results
+
+#### 1. Manual VS Code Verification (User-Confirmed)
+- Virtual environment activation (`.venv`): **PASSED**
+- Python `3.11.9`: **PASSED**
+- NumPy, Pandas, Scikit-learn, and SciPy imports: **PASSED**
+- Git status: clean and synchronized with `origin/main`
+- `pip check`: No broken requirements found
+
+#### 2. Jupyter Execution Smoke Test (`g2f-maize-2026` Kernel)
+- Created a temporary synthetic notebook (`notebooks/_tmp_phase1_smoke_test.ipynb`) and executed all 4 cells programmatically via `nbclient` using the registered `g2f-maize-2026` kernel.
+- **Active Kernel Interpreter:** `C:\Users\piyus\Downloads\g2f-maize-yield-prediction-2026\.venv\Scripts\python.exe` (exact match with project `.venv`).
+- **Python Version:** `3.11.9` (`MSC v.1938 64 bit (AMD64)`).
+- **Verified Imports Inside Kernel:** `numpy`, `pandas`, `scipy`, `sklearn`, `matplotlib`, `pyarrow`.
+- **Synthetic Computation:** Built a 5-element NumPy array (`[10.5, 11.2, 12.8, 9.5, 11.0]`) and Pandas DataFrame; computed verified mean `11.00`.
+- **Plot Rendering:** Generated and rendered a Matplotlib figure to an in-memory PNG buffer (`10,233 bytes`, valid PNG header).
+- **Cleanup:** Deleted the temporary notebook immediately after verification; `notebooks/` contains only `.gitkeep`.
+
+#### 3. Dependency Verification (`requirements.txt` vs. `.venv`)
+- Verified via `importlib.metadata` that all 10 direct dependencies installed in `.venv` match `requirements.txt` exactly:
+  - `numpy==2.4.6`, `pandas==3.1.1`, `scipy==1.17.1`, `pyarrow==26.0.1`
+  - `matplotlib==3.11.2`, `seaborn==0.13.2`, `scikit-learn==1.9.1`
+  - `jupyter==1.1.1`, `ipykernel==7.4.0`, `pytest==9.2.0`
+
+#### 4. Git Safety Audit
+- Audited all 20 tracked files via `git ls-files`: confirmed zero raw datasets, processed datasets, credentials, virtual environment files, or model binaries are tracked.
+- Ran `git fetch origin`: confirmed local `HEAD` (`31c489baed6406bb432c86ec4e80337db7895c3c`) matched `origin/main` (`31c489baed6406bb432c86ec4e80337db7895c3c`).
+- Audited `.gitignore` via `git check-ignore -v --no-index`: confirmed protection for `data/raw/training/*`, `data/raw/testing/*`, `data/processed/*`, `.venv/`, model binaries (`*.pkl`), `submissions/*`, `experiments/*`, `.env`, and `secrets.*`.
+
+#### 5. Hardware Specifications
+- **Operating System:** Microsoft Windows 11 Home, Version `10.0.26200` (Build `26200`), 64-bit
+- **CPU:** Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz — **6 physical cores / 12 logical processors**
+- **System RAM:** **15.85 GB** total (`2.63 GB` available at measurement time)
+- **GPU (Dedicated):** **NVIDIA GeForce GTX 1660 Ti** — **6,144 MiB (6 GB) dedicated VRAM** (`5,956 MiB` free via `nvidia-smi`; driver `616.92`)
+- **GPU (Integrated):** Intel(R) UHD Graphics 630 (driver `30.0.101.1660`)
+- **NVIDIA CUDA Availability:** NVIDIA driver (`616.92`) reports **CUDA UMD Version 13.4** via `nvidia-smi`. No standalone local CUDA Toolkit (`nvcc` not found on `PATH`; `C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA` not present).
+- **Project Drive (`C:`, NTFS):** **464.04 GB** total, **~21.07–21.90 GB** available free space at measurement time.
+
+### Errors, Debugging & Resolutions
+- **PowerShell inline quoting in smoke-test script:** First inline `-c` invocation failed because PowerShell interpreted an escaped single quote inside a double-quoted string (`PNG : The term 'PNG' is not recognized...`). Resolved cleanly by passing the smoke-test script via a single-quoted PowerShell here-string (`@' ... '@ | .\.venv\Scripts\python.exe -`) with zero shell interpolation.
+- **Benign Windows ZMQ/IPKernel warnings during programmatic `nbclient` execution:** `zmq` emitted a `RuntimeWarning` regarding Windows `ProactorEventLoop` (handled automatically via Tornado's selector thread) and `IPKernelApp` logged a local TCP transport warning. All 4 notebook cells executed without errors and passed all assertions.
+- **WMI 32-bit VRAM cap:** `Win32_VideoController.AdapterRAM` reported `4 GB` for the GTX 1660 Ti due to Windows WMI's 32-bit unsigned integer limit; verified true dedicated VRAM (`6,144 MiB`) directly with `nvidia-smi`.
+
+### Lessons Learned & Next Steps
+- **Resource Planning Note:** With `15.85 GB` system RAM (`2.63 GB` currently free), `6 GB` GPU VRAM, and `~21 GB` free disk space on `C:`, future Phase 2+ workflows should use memory-efficient formats (Parquet/PyArrow, compact numeric dtypes, chunked genomic loading), monitor disk usage carefully before caching large datasets or pretrained checkpoints, and close unnecessary background applications prior to heavy runs.
+- **Next Step:** Phase 1 verification is complete. Await user approval before beginning Phase 2 (Data Ingestion & Exploratory Data Analysis).
+
