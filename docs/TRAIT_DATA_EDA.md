@@ -13,7 +13,7 @@
 - **CSV Engine:** Pandas C engine (`pd.read_csv(..., engine="c", low_memory=False)`), preceded by a header + 5-row inspection (`nrows=5`). Using the C engine avoids assuming `engine="pyarrow"` supports `nrows` or all Pandas kwargs.
 - **File Size on Disk:** `35.54 MB` (`37,267,047 bytes`)
 - **Loaded Dimensions:** **`203,185` rows × `26` columns**
-- **Full Load Time:** `0.317 seconds` (final fresh-kernel execution)
+- **Full Load Time:** `0.331 seconds` (final fresh-kernel execution)
 - **In-Memory Footprint (`deep=True`):** **`58.65 MB`** (`61,503,305 bytes`) — fits comfortably within local RAM (`15.85 GB` total).
 
 ---
@@ -105,12 +105,16 @@
 
 ## 4. Target Variable Analysis (`Yield_Mg_ha`)
 
+All descriptive statistics below are computed strictly on **finite numerical observations** (`np.isfinite`), with explicit counts verified for missing (`NaN`), non-numeric strings, positive infinity (`+inf`), and negative infinity (`-inf`).
+
 | Metric | Verified Value |
 | :--- | ---: |
 | Total rows | `203,185` |
-| Valid numerical observations | `192,974` (`94.97%`) |
+| Valid finite numerical observations | `192,974` (`94.97%`) |
 | Missing (`NaN`) observations | `10,211` (`5.03%`) |
 | Non-numeric string observations | `0` |
+| Positive infinity (`+inf`) values | `0` |
+| Negative infinity (`-inf`) values | `0` |
 | Minimum | `0.4282 Mg/ha` |
 | 1st percentile (`P01`) | `1.9562 Mg/ha` |
 | 5th percentile (`P05`) | `4.2781 Mg/ha` |
@@ -151,7 +155,7 @@
   - **Per `Hybrid` (`6,203` hybrids):** min `1`, median `23.0`, mean `32.76`, max `1,018`
 
 ### `(Env, Hybrid)` Granularity & Experimental Replication
-- **Unique `(Env, Hybrid)` combinations:** **`132,635`**
+- **Unique `(Env, Hybrid)` pairs:** **`132,635`**
   - Exactly `1` plot observation: `76,402` (`57.60%`)
   - Multiple observations (**replicated**): **`56,233` (`42.40%`)** — primarily 2 replicates (`49,033`), with 3 (`3,414`), 4 (`2,727`), up to a max of `37` plots (likely repeated check hybrids)
   - With `≥ 1` valid `Yield_Mg_ha` label: **`128,597` (`96.96%`)**
@@ -199,12 +203,12 @@
 | 2025 | 14,897 | 14,519 | 2.54% | 24 | 24 | 1,081 | 10.357 | 10.568 | 3.149 |
 
 ### Environment-Level & Hybrid-Level Yield Variability
-- **Environment means (`n = 321` envs):** range from **`1.445` to `15.051 Mg/ha`** (mean `9.514`, SD `2.511`, IQR `8.043–11.189`). Within-environment SD ranges from `0.350` to `3.696 Mg/ha` (median `1.959`, mean `1.963`).
-- **Plot-level Variance Decomposition (Law of Total Variance, `n = 192,974`):**
-  - Total variance: `9.7828`
-  - **Between-environment variance:** `5.6125` (**`57.37%`**)
-  - **Within-environment variance:** `4.1703` (**`42.63%`**)
-  - *Modeling implication:* Over half of plot-level yield variance is environment-level shift, yet the competition metric (**average within-environment Pearson $r$**) evaluates **within-environment hybrid ranking** — making accurate modeling of the `42.63%` within-environment signal (genotype main effect + G × E interaction) critical!
+- **Environment means (`n = 321` envs; `0` environments with entirely missing yield):** range from **`1.445` to `15.051 Mg/ha`** (mean `9.514`, SD `2.511`, IQR `8.043–11.189`). Within-environment SD ranges from `0.350` to `3.696 Mg/ha` (median `1.959`, mean `1.963`).
+- **Plot-Weighted Variance Decomposition (Law of Total Variance across `n = 192,974` finite plots):**
+  - Total plot-level variance (`ddof=0`): `9.7828`
+  - **Plot-weighted between-environment variance:** `5.6125` (**`57.37%`**)
+  - **Plot-weighted within-environment variance:** `4.1703` (**`42.63%`**)
+  - *Statistical Caution & Modeling Implication:* Because this decomposition averages squared deviations across all valid plots, environments with more valid plots carry proportionally greater weight. Crucially, **plot-weighted within-environment variation (`42.63%`) must NOT be equated solely with genetic variation** — it combines genetic main effects, Genotype × Environment (G × E) interaction, within-field spatial heterogeneity (block/range/pass effects), and plot-level residual/measurement noise. Nevertheless, because environment-level mean shifts account for over half of raw plot variance while the official competition metric scores within-environment ranking, evaluating within-environment correlation directly is critical.
 - **Hybrid variability (`6,024` hybrids with ≥1 valid yield out of `6,203`):**
   - `4,307` hybrids (`71.50%`) were tested across `> 1` year (median `2.0` years, max `12` years).
   - `5,236` hybrids (`86.92%`) have `≥ 10` valid plots.
@@ -218,38 +222,68 @@
 
 ## 7. Preliminary Data Leakage Assessment
 
-> **Policy:** No column is automatically approved for modeling based on correlation with `Yield_Mg_ha`. Final feature eligibility requires auditing the 2026 testing files and metadata in subsequent phases.
+> **Policy:** No column is automatically approved for modeling based on correlation with `Yield_Mg_ha`. The 10 potentially outcome-derived traits are **provisionally excluded from direct prediction inputs pending verification of the 2026 test schema and permitted prediction-time information**.
 
 | Category | Count | Columns | Assessment & Rationale |
 | :--- | :-: | :--- | :--- |
 | **Target variable** | 1 | `Yield_Mg_ha` | Official competition prediction target (`Mg/ha` at `15.5%` moisture). Never an input feature. |
-| **Identifiers** | 11 | `Env`, `Year`, `Field_Location`, `Experiment`, `Replicate`, `Block`, `Plot`, `Range`, `Pass`, `Hybrid`, `Hybrid_orig_name` | Join keys (`Env`, `Hybrid`), temporal/CV grouping keys (`Year`, `Env`, `Field_Location`), and plot-level field-design IDs (`Replicate`, `Block`, `Plot`, `Range`, `Pass`). Plot-level layout IDs are unlikely to exist in 2026 `(Env, Hybrid)` test rows. |
+| **Identifiers** | 11 | `Env`, `Year`, `Field_Location`, `Experiment`, `Replicate`, `Block`, `Plot`, `Range`, `Pass`, `Hybrid`, `Hybrid_orig_name` | Join keys (`Env`, `Hybrid`), temporal/CV grouping keys (`Year`, `Env`, `Field_Location`), and plot-level field-design IDs (`Replicate`, `Block`, `Plot`, `Range`, `Pass`). Plot-level layout IDs are unlikely to exist in 2026 `(Env, Hybrid)` test rows (verify in Phase 2.3+). |
 | **Potential prediction-time features** | 2 | `Hybrid_Parent1`, `Hybrid_Parent2` | Parental inbred/tester pedigree; potentially available or derivable from `Hybrid` or genotype files (must verify against 2026 test inputs; missing in `1.25%` of training rows). |
 | **Unknown availability requiring investigation** | 2 | `Plot_Area_ha`, `Date_Planted` | Management/design attributes; `Date_Planted` is valuable for weather-window alignment **only if** provided in 2026 test metadata. `Plot_Area_ha` is likely unavailable at test time. |
-| **Potential post-harvest or outcome-derived features** *(HIGH / SEVERE LEAKAGE RISK)* | 10 | `Date_Harvested`, `Grain_Moisture`, `Twt_kg_m3`, `Stand_Count_plants`, `Pollen_DAP_days`, `Silk_DAP_days`, `Plant_Height_cm`, `Ear_Height_cm`, `Root_Lodging_plants`, `Stalk_Lodging_plants` | **Prohibited as direct input features.** `Date_Harvested`, `Grain_Moisture`, and `Twt_kg_m3` are measured **at harvest** (and `Grain_Moisture` is used directly to moisture-adjust `Yield_Mg_ha`). The other 7 are **in-season plot phenotypes** observed on growing 2026 crops and unavailable as test-time inputs. |
+| **Potential post-harvest or outcome-derived features** *(PROVISIONALLY EXCLUDED)* | 10 | `Date_Harvested`, `Grain_Moisture`, `Twt_kg_m3`, `Stand_Count_plants`, `Pollen_DAP_days`, `Silk_DAP_days`, `Plant_Height_cm`, `Ear_Height_cm`, `Root_Lodging_plants`, `Stalk_Lodging_plants` | **Provisionally excluded from direct prediction inputs pending verification of the 2026 test schema and permitted prediction-time information.** `Date_Harvested`, `Grain_Moisture`, and `Twt_kg_m3` are measured at harvest (and `Grain_Moisture` is used directly to moisture-adjust `Yield_Mg_ha`); the remaining 7 are in-season plot phenotypes observed during crop growth and expected to be unavailable at test time. |
 
 ---
 
-## 8. Confirmed Findings vs. Unresolved Technical Questions
+## 8. Official Competition Evaluation Metric & Edge-Case Audit
+
+Verified directly from the official 2026 G2F EvalAI challenge API (`https://eval.ai/api/challenges/challenge/2742/`) and `https://www.maizegxeprediction.org/about/`:
+
+### Verified Official Rules
+- **Primary Competition Metric:** **Average of within-environment Pearson Correlation Coefficient ($r$) scores.**
+  - Pearson $r$ is computed separately for each test environment/location between submitted predictions and observed 2026 grain yields (`Yield_Mg_ha`, adjusted to `15.5%` moisture).
+  - The per-environment $r$ values are averaged to produce a single representative $r$ score; highest average $r$ wins.
+  - Other evaluation metrics will be used by organizers for publication purposes, but do not determine the winner.
+- **Missing Predictions in Submissions:** Explicitly disallowed — every row in the submission template must contain a valid numerical prediction, or the submission will not be evaluated.
+- **Failed / Unusual Observed Test Environments or Hybrids:** Organizers state that some 2026 locations or hybrids may fail or exhibit extreme/unusual values and may be dropped prior to evaluation; when dropped, corresponding participant predictions are dropped automatically before scoring.
+
+### Unspecified Evaluation Edge Cases (Marked Unresolved)
+The public EvalAI and competition website descriptions do **not** explicitly specify:
+1. **Environment weighting:** Wording ("averaged for a single representative r value") suggests an unweighted arithmetic mean across evaluated environments, but whether any environment-size weighting is applied is **unresolved** until official evaluation code or organizer guidance is confirmed.
+2. **Constant predictions within an environment** ($\text{SD}(\hat{y}) = 0 \implies$ undefined Pearson $r$): Handling (`0`, `NaN`/dropped, or evaluation error) is **unresolved**.
+3. **Undefined Pearson $r$ due to constant observed yields or `< 2` valid hybrids in an environment:** Exact handling (beyond organizer discretion to drop failed environments/hybrids) is **unresolved**.
+4. **Partial missing observed labels inside an otherwise retained environment:** Minimum valid hybrid count required for an environment to be scored is **unresolved**.
+
+---
+
+## 9. Confirmed Findings vs. Unresolved Technical Questions
 
 ### Confirmed Findings (Verified Empirically)
-1. `1_Training_Trait_Data_2014_2025.csv` contains `203,185` plot-level rows × `26` columns (`58.65 MB` deep RAM), spanning all 12 years `2014–2025` with `321` environments and `6,203` standardized hybrids.
-2. Zero exact duplicate rows exist; `(Env, Experiment, Replicate, Block, Plot)` uniquely identifies all `203,185` plots, while `56,233` `(Env, Hybrid)` pairs (`42.40%`) have genuine experimental replicates.
-3. `Yield_Mg_ha` has `192,974` valid positive observations (`5.03%` missing, `0` zeros, `0` negatives, `0` non-numeric strings), mean `9.7504`, median `9.9179`, SD `3.1278`, skewness `-0.2164`, and `982` IQR-flagged plots (`0.51%`).
-4. Plot-level yield variance splits `57.37%` between-environment vs. `42.63%` within-environment.
-5. Ten co-measured harvest/in-season trait columns pose severe target/temporal leakage risk if used as direct predictors.
+1. `1_Training_Trait_Data_2014_2025.csv` contains **`203,185` observations** × `26` columns (`58.65 MB` deep RAM), spanning all 12 consecutive seasons `2014–2025` across `321` environments and `6,203` standardized hybrids.
+2. `Yield_Mg_ha` has **`192,974` valid finite numerical labels** (`10,211` / `5.03%` `NaN`, `0` non-numeric strings, `0` `+inf`, `0` `-inf`, `0` zeros, `0` negatives), mean `9.7504`, median `9.9179`, SD `3.1278`, skewness `-0.2164`, and `982` IQR-flagged tail plots (`0.51%`, retained untouched).
+3. Zero exact duplicate rows exist; `(Env, Experiment, Replicate, Block, Plot)` uniquely identifies all `203,185` plots.
+4. Across **`132,635` unique `(Env, Hybrid)` pairs**: **`56,233`** have multiple observations (genuine experimental replicates), **`128,597`** have valid yield (`≥ 1` finite label), and **`4,038`** have no valid yield (`0` labels). **`0` environments** have entirely missing yield.
+5. Plot-weighted variance decomposition across the `192,974` valid plots yields **`57.37%` between-environment** and **`42.63%` within-environment** variation (where within-environment variation reflects genetic effects, G × E, field spatial heterogeneity, and plot-level residual noise combined).
+6. Ten harvest/in-season trait columns are provisionally excluded from direct prediction inputs pending 2026 test-schema verification.
 
 ### Unresolved Technical Questions & Proposed Decisions (Not Yet Finalized)
-1. **Official G2F Data Dictionary:** Confirm inferred meanings and units for the 25 non-target columns (especially `Twt_kg_m3` extreme values `> 900` / `< 500` and `Grain_Moisture < 5%`).
-2. **2026 Test Schema Audit (Phase 2.3+):** Verify exact columns available in 2026 testing metadata and submission template (`Date_Planted`, `Field_Location`, `Hybrid_Parent1/2`, `Plot_Area_ha`, `Experiment`).
-3. **Training Target Granularity (Phase 3 Decision):** Decide whether to model at plot level (`192,974` valid rows) vs. `(Env, Hybrid)` aggregate mean/BLUP level (`128,597` valid combinations), and how to weight replicated vs. unreplicated `(Env, Hybrid)` combinations.
-4. **High-Missingness & Tail-Yield Policy (Phase 3 Decision):** Investigate `2017` (`17.41%` missing targets) and `SCH1_2024` (`78.40%` missing targets) against trial metadata/weather before deciding whether to retain or weight them during training/CV.
-5. **Potential Multi-Task Learning (Phase 4+ Proposal):** Explore whether in-season/harvest traits (`Plant_Height_cm`, `Pollen_DAP_days`, `Silk_DAP_days`, `Grain_Moisture`) improve neural or multi-output models strictly as **auxiliary training targets**, never as test inputs.
+1. **Official G2F Data Dictionary:** Confirm inferred meanings and units for the 25 non-target columns (especially extreme `Grain_Moisture` and `Twt_kg_m3` values).
+2. **2026 Test Schema Audit (Phase 2.3+):** Verify exact columns available in 2026 testing metadata and submission template (`Date_Planted`, `Field_Location`, `Hybrid_Parent1/2`, `Plot_Area_ha`, `Experiment`, and whether any in-season traits are ever supplied).
+3. **Official Evaluation Script Edge Cases:** Confirm environment weighting, constant-prediction handling, minimum hybrids per environment, and undefined Pearson $r$ handling before finalizing Phase 3 metric implementation.
+4. **Dataset Licensing & Sharing Terms:** Confirm explicit G2F data-use/redistribution license terms (separate from open-access model publication rules) before sharing any derived data artifacts externally.
+5. **Training Target Granularity (Phase 3 Decision):** Decide whether to model at plot level (`192,974` valid plots) vs. `(Env, Hybrid)` aggregate mean/BLUP level (`128,597` valid pairs), and how to handle replicated vs. unreplicated pairs.
+6. **High-Missingness & Tail-Yield Policy (Phase 3 Decision):** Investigate `2017` (`17.41%` missing targets) and `SCH1_2024` (`78.40%` missing targets) against trial metadata/weather before deciding whether to retain or weight them during training/CV.
+7. **Potential Multi-Task Learning (Phase 4+ Proposal):** Evaluate whether provisionally excluded in-season/harvest traits add predictive value strictly as **auxiliary training targets**, never as direct test inputs.
 
 ---
 
-## 9. Compliance & Data-Sharing Hygiene
+## 10. Data-Sharing Terms & Repository Compliance
 
-- Checked official 2026 G2F EvalAI challenge terms (`https://eval.ai/web/challenges/challenge-page/2742/overview`): the historical dataset is openly shared for competition research and open-access model publication, and no rule prohibits sharing non-sensitive aggregate summary statistics or aggregate figures.
-- All raw competition files remain strictly excluded by `.gitignore` (`git ls-files` verified).
-- Outputs of the two notebook cells displaying raw sample rows (`preview_df` and `df.head(5)`) were cleared prior to committing `notebooks/01_trait_data_eda.ipynb`, and the committed notebook was scanned to verify zero raw plot records appear in the file.
+- **Actual Verified Terms (`eval.ai/api/challenges/challenge/2742/` and `maizegxeprediction.org/about/`):**
+  - Winning teams commit to publishing (or allowing organizers to publish) their **models** with open public access after the competition; predictions submitted to EvalAI are public and may be used in the joint manuscript.
+  - Training/testing data is distributed via a Google Drive folder linked from EvalAI, while `maizegxeprediction.org` carries a general copyright notice (`© 2024 The Genomes to Fields (G2F) Initiative – All Rights Reserved`).
+  - **Important Distinction:** Neither EvalAI nor `maizegxeprediction.org/about/` contains an explicit dataset license authorizing broad redistribution of raw competition files or every derived data artifact. Open-access model publication requirements do **not** automatically authorize dataset redistribution.
+- **Conservative Repository Safeguards Applied:**
+  - Zero raw or processed competition datasets are committed or redistributed (verified via `.gitignore` and `git ls-files`).
+  - Outputs of the two notebook cells displaying raw competition rows (`preview_df` and `df.head(5)`) were cleared before committing [notebooks/01_trait_data_eda.ipynb](../notebooks/01_trait_data_eda.ipynb), and the saved `.ipynb` was scanned to confirm zero raw plot records appear.
+  - Only non-sensitive aggregate summary statistics and aggregate visualizations (`docs/TRAIT_DATA_EDA.md`, `reports/figures/*.png`) containing zero reconstructable individual plot records are committed; explicit dataset redistribution/publication terms remain marked for confirmation with organizers/G2F DOI documentation before any broader public publication.
+

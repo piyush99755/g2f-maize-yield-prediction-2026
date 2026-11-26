@@ -55,3 +55,43 @@ This document tracks significant technical, methodological, and architectural de
 - **Rationale:** Prevents accidental uploads of competition data to GitHub, keeps Git history lightweight, and preserves expected folder structure on fresh clones.
 - **Alternatives Considered:** Tracking processed summaries or raw samples in Git — rejected to maintain a zero-risk policy against uploading competition datasets.
 - **Validation Evidence:** Verified `.gitignore` behavior across datasets, caches, secrets, artifacts, and `.gitkeep` placeholders using `git check-ignore -v`.
+
+---
+
+## DEC-004 — Provisional Exclusion of Potentially Outcome-Derived Trait Columns from Direct Inputs
+
+- **Date:** 2026-11-26
+- **Status:** Proposed *(Provisional — pending 2026 test-schema verification)*
+- **Context:** Phase 2.2 EDA of `1_Training_Trait_Data_2014_2025.csv` identified 10 agronomic/harvest trait columns (`Date_Harvested`, `Grain_Moisture`, `Twt_kg_m3`, `Stand_Count_plants`, `Pollen_DAP_days`, `Silk_DAP_days`, `Plant_Height_cm`, `Ear_Height_cm`, `Root_Lodging_plants`, `Stalk_Lodging_plants`) that are measured during crop growth or at harvest alongside `Yield_Mg_ha`.
+- **Decision:** Provisionally exclude all 10 columns from direct prediction inputs until the 2026 testing files and permitted prediction-time inputs are audited. Do not approve any column for modeling solely due to correlation with `Yield_Mg_ha`.
+- **Rationale:** Using post-harvest measurements (e.g., `Grain_Moisture`, `Twt_kg_m3`, `Date_Harvested`) or in-season plot phenotypes unavailable in 2026 test inputs introduces severe target/temporal leakage and invalidates local cross-validation.
+- **Alternatives Considered:**
+  - Permanently discarding these columns prior to Phase 3 — deferred because some traits may later be tested strictly as **auxiliary multi-task training targets** (never as test-time inputs), and exact 2026 test-input availability has not yet been verified.
+- **Validation Evidence:** Verified schema of `1_Training_Trait_Data_2014_2025.csv` (`203,185` rows × `26` columns) and EvalAI challenge evaluation details (`https://eval.ai/api/challenges/challenge/2742/`).
+
+---
+
+## DEC-005 — Conservative Data-Sharing & Notebook Output Sanitization Policy
+
+- **Date:** 2026-11-26
+- **Status:** Accepted
+- **Context:** Official EvalAI and `maizegxeprediction.org/about/` rules require winners to open-source their models and treat submitted predictions as public, but do **not** include an explicit dataset redistribution license authorizing broad third-party redistribution of raw competition files or every derived artifact.
+- **Decision:** Keep all raw and processed competition datasets strictly outside Git; clear outputs from any notebook cell displaying raw competition records before committing; commit only non-sensitive aggregate statistics and aggregate visualizations containing zero reconstructable plot records; mark broader dataset redistribution terms as requiring confirmation before external dataset sharing.
+- **Rationale:** Avoids assuming that open-access model publication automatically authorizes dataset redistribution while preserving full code and aggregate-analysis reproducibility.
+- **Alternatives Considered:**
+  - Committing full executed notebook outputs including `df.head(5)` previews — rejected to prevent leaking raw competition records into Git history.
+  - Clearing all notebook outputs entirely — rejected where non-sensitive aggregate summaries and aggregate plots aid code review without exposing raw rows.
+- **Validation Evidence:** Verified zero raw competition files in `git ls-files`, explicit `.gitignore` coverage, and automated raw-record token scan on committed `notebooks/01_trait_data_eda.ipynb`.
+
+---
+
+## DEC-006 — Retention of Unmodified Raw Observations & Statistical Tail Values Through EDA
+
+- **Date:** 2026-11-26
+- **Status:** Accepted *(for Phase 2 EDA; Phase 3 modeling policy pending)*
+- **Context:** `1_Training_Trait_Data_2014_2025.csv` contains `56,233` replicated `(Env, Hybrid)` pairs (`132,635` unique pairs; `128,597` with valid yield; `4,038` without valid yield), `10,211` missing plot targets, and `982` IQR-flagged tail yield observations (`0.51%` of `192,974` finite valid yields).
+- **Decision:** Retain all original observations untouched throughout Phase 2 without dropping IQR-flagged yields, imputing missing values, or aggregating experimental replicates. Defer plot-level vs. `(Env, Hybrid)`-level modeling and high-missingness environment handling (`SCH1_2024`, `2017`) to Phase 3 after auditing metadata, weather, soil, and evaluation edge cases.
+- **Rationale:** Zero exact duplicate rows exist (`(Env, Experiment, Replicate, Block, Plot)` is a unique primary key), and extreme yields in field trials frequently represent legitimate biological/weather stress rather than recording errors.
+- **Alternatives Considered:** Immediately filtering IQR outliers or averaging replicates during EDA — rejected as premature preprocessing before inspecting metadata and weather context.
+- **Validation Evidence:** Composite key uniqueness audit (`0` collisions), finite numerical check (`0` `+inf`, `0` `-inf`, `0` non-numeric), and full distribution analysis in [docs/TRAIT_DATA_EDA.md](TRAIT_DATA_EDA.md).
+
