@@ -95,3 +95,32 @@ This document tracks significant technical, methodological, and architectural de
 - **Alternatives Considered:** Immediately filtering IQR outliers or averaging replicates during EDA — rejected as premature preprocessing before inspecting metadata and weather context.
 - **Validation Evidence:** Composite key uniqueness audit (`0` collisions), finite numerical check (`0` `+inf`, `0` `-inf`, `0` non-numeric), and full distribution analysis in [docs/TRAIT_DATA_EDA.md](TRAIT_DATA_EDA.md).
 
+---
+
+## DEC-007 — Local-Only Storage of Data-Derived EDA Outputs Pending Permission Clarification
+
+- **Date:** 2026-11-27
+- **Status:** Accepted *(supersedes DEC-005 for Phase 2.3+ artifacts)*
+- **Context:** Competition terms on EvalAI and `maizegxeprediction.org/about/` require open-access model publication for winners but do not explicitly define broad redistribution rights for dataset-derived statistics, notebook outputs, or visualizations.
+- **Decision:** Starting in Phase 2.3, keep all data-derived EDA statistics (`docs/METADATA_EDA.md`), raw-record previews, executed notebook outputs, and data-derived visualizations (`reports/figures/local/`) strictly local and excluded via `.gitignore`. Commit only clean, output-stripped notebooks and non-data-derived methodology/decision documentation to GitHub until explicit data-sharing permissions are confirmed.
+- **Rationale:** Provides maximum legal/compliance safety with zero risk of prematurely publishing restricted data-derived content while keeping 100% of executable code reproducible locally.
+- **Alternatives Considered:**
+  - Continuing to commit aggregate summary documents and aggregate plots — paused starting Phase 2.3 until explicit organizer/license confirmation is obtained.
+- **Validation Evidence:** Updated `.gitignore` rules verified via `git check-ignore`, output-stripped `notebooks/02_metadata_eda.ipynb`, and `git ls-files` audit.
+
+---
+
+## DEC-008 — Provisional Metadata Feature Eligibility & Strict Non-Persistence of Merged Tables in EDA
+
+- **Date:** 2026-11-27
+- **Status:** Proposed *(Provisional — pending 2026 test-schema verification)*
+- **Context:** Metadata columns span identifiers, geographical coordinates, weather-station deployment dates, agronomic management records, harvest-stage moisture instrumentation, and free-text collaborator issue logs.
+- **Decision:**
+  1. Provisionally exclude post-season/harvest-stage metadata fields (station removal date, harvest moisture instrumentation, and free-text collaborator issue/comment columns) from direct prediction inputs pending 2026 test-schema audit.
+  2. Do not approve any geographical, temporal, or management metadata column for modeling solely because it is present in historical training data; final eligibility requires 2026 test-schema verification.
+  3. Keep all Phase 2 cross-dataset relationship checks strictly read-only without persisting merged tables or engineered features; enforce left-join semantics on `Env` in future Phase 3 integration pipelines.
+- **Rationale:** Prevents silent data loss from unmatched environments, avoids subtle leakage from post-hoc collaborator notes or harvest-stage fields, and maintains clean separation between EDA (Phase 2) and preprocessing/integration (Phase 3).
+- **Alternatives Considered:** Pre-approving coordinates or management columns for modeling during EDA — rejected until 2026 test metadata availability, formatting consistency, and anomaly resolution are verified.
+- **Validation Evidence:** Verified via fresh-kernel execution of [notebooks/02_metadata_eda.ipynb](../notebooks/02_metadata_eda.ipynb) and detailed local findings in `docs/METADATA_EDA.md`.
+
+

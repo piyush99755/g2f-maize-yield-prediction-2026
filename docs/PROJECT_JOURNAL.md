@@ -167,7 +167,39 @@ This journal records chronological development milestones, technical concepts, i
 
 ### Lessons Learned & Next Steps
 - Distinguish rigorously between plot-weighted within-environment variation and true genetic variance, and verify every competition rule (metric edge cases, data redistribution licensing, test schema availability) rather than extrapolating beyond official text.
-- **Next Step:** Await user approval before proceeding to **Phase 2.3** (Metadata EDA).
+- **Next Step:** Proceed to Phase 2.3 (Training Metadata EDA) upon approval.
+
+---
+
+## 2026-11-27 — Phase 2.3: Training Metadata EDA (Workflow & Engineering Log)
+
+> **Data-Sharing Guardrail (`DEC-007`):** Per updated Phase 2.3 policy, all data-derived statistics, counts, raw-record previews, and visualizations from the training metadata dataset are stored strictly locally (`docs/METADATA_EDA.md` and `reports/figures/local/`, both excluded via `.gitignore`) pending explicit clarification of competition data-sharing permissions. This committed journal entry records methodology, reproducibility checks, leakage-review structure, and unresolved technical questions only.
+
+### Context & Objective
+- Built and verified [notebooks/02_metadata_eda.ipynb](../notebooks/02_metadata_eda.ipynb) to perform strictly read-only exploratory data analysis on the raw training metadata table (`2_Training_Meta_Data_2014_2025.csv`) and a read-only environment-key relationship audit against the previously inspected trait dataset (`1_Training_Trait_Data_2014_2025.csv`).
+- Preserved all original raw files, avoided cleaning/imputation/merging/feature engineering/modeling, and did not inspect soil, weather, genotype, or environmental covariate datasets.
+
+### Methodology & Implementation Details
+- **Reproducible Loading & Dynamic Computation:** Resolved all dataset paths relative to the repository root, inspected headers and sample rows with Pandas' C engine prior to full load, and derived all summary metrics and visualization titles dynamically at runtime.
+- **Schema, Sentinel & Parsing Audit:** Implemented dual-layer missingness inspection (both default-parsed dtypes and raw `keep_default_na=False` token scanning) plus finite/infinity validation on numeric columns — specifically designed to detect default Pandas NA-coercion traps (such as literal `"None"` in agronomic text fields) without altering raw values.
+- **Granularity, Geographical & Management Audits:** Audited primary-key uniqueness on `Env`, identifier consistency across `Env`/`Year`/`Experiment_Code`/`City`, coordinate bounds and weather-station-vs-field-centroid Haversine diagnostics, cross-year location coordinate consistency, available date fields (confirming metadata date-column scope vs. trait-table planting/harvest/plot-area scope), diagnostic station-deployment durations, and free-text management/comment heterogeneity.
+- **Read-Only Cross-Dataset Relationship Audit:** Audited `Env` overlap and many-to-one join cardinality using only required identifier and target columns from the trait table without creating or persisting any merged dataset.
+- **Preliminary Eligibility & Leakage Taxonomy:** Classified all metadata columns across six categories (identifiers, potential geographical features, potential temporal features, potential management features, provisionally excluded post-harvest/outcome-derived/unavailable fields, and unknown fields requiring investigation), deferring final feature eligibility to 2026 test-schema verification (`DEC-008`).
+
+### Errors, Debugging & Resolutions
+- **Pandas deprecation warning (`Series.dt.dayofyear`):** Initial fresh-kernel execution emitted a `Pandas4Warning` for `.dt.dayofyear`. Replaced with `.dt.day_of_year` and re-executed cleanly from a fresh `g2f-maize-2026` kernel with zero errors and zero warnings.
+- **Notebook output stripping & Git hygiene:** Verified all code cells executed cleanly from a fresh kernel, archived complete data-derived findings and visualizations locally (`docs/METADATA_EDA.md`, `reports/figures/local/`), updated `.gitignore` to exclude local data-derived outputs, and stripped all cell outputs and execution counts from `notebooks/02_metadata_eda.ipynb` before committing.
+
+### Unresolved Technical Questions (Tracked for Phase 2.4+ / Phase 3)
+1. **Unmatched Environment Coverage:** Verify whether environments missing from metadata appear in weather, soil, or EC datasets before defining Phase 3 left-join fallback policies.
+2. **2026 Test Metadata Schema:** Confirm which geographical, temporal, and management fields are populated and consistently defined in 2026 testing inputs.
+3. **Coordinate & Date Quality Exceptions:** Investigate large weather-station-to-field-centroid discrepancies, cross-year coordinate spread within shared `Experiment_Code`s, asymmetric corner missingness, and station date-year mismatches before Phase 3 preprocessing.
+4. **Custom NA-Parsing Rules:** Design explicit per-column `na_values` handling in Phase 3 so meaningful agronomic values (e.g., `"None"` indicating no tillage) are not silently coerced to missing `NaN`.
+5. **Competition Data-Sharing Terms:** Retain data-derived statistics, notebook outputs, and visualizations locally until explicit data-sharing permissions are confirmed.
+
+### Next Step
+- Await user approval before proceeding to **Phase 2.4**.
+
 
 
 

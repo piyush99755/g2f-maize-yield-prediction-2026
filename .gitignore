@@ -156,3 +156,10 @@ secrets.*
 Thumbs.db
 desktop.ini
 .idea/
+
+# ------------------------------------------------------------------------------
+# Local data-derived EDA reports & visualizations (pending sharing clarification)
+# ------------------------------------------------------------------------------
+docs/METADATA_EDA.md
+reports/figures/local/
+
