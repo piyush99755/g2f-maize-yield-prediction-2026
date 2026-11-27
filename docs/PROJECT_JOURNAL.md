@@ -198,7 +198,40 @@ This journal records chronological development milestones, technical concepts, i
 5. **Competition Data-Sharing Terms:** Retain data-derived statistics, notebook outputs, and visualizations locally until explicit data-sharing permissions are confirmed.
 
 ### Next Step
-- Await user approval before proceeding to **Phase 2.4**.
+- Proceed to Phase 2.4 (Training Soil Data EDA) upon approval.
+
+---
+
+## 2026-11-27 — Phase 2.4: Training Soil Data EDA (Workflow & Engineering Log)
+
+> **Data-Sharing Guardrail (`DEC-007`):** Per repository policy, all data-derived statistics, counts, raw-record previews, and visualizations from the training soil dataset are stored strictly locally (`docs/SOIL_DATA_EDA.md` and `reports/figures/local/`, both excluded via `.gitignore`) pending explicit clarification of competition data-sharing permissions. This committed journal entry records methodology, reproducibility checks, leakage/timing considerations, and unresolved technical questions only.
+
+### Context & Objective
+- Created and executed [notebooks/03_soil_data_eda.ipynb](../notebooks/03_soil_data_eda.ipynb) to perform strictly read-only exploratory data analysis on `3_Training_Soil_Data_2015_2025.csv`, plus a read-only cross-dataset environment coverage audit against the previously analyzed trait and metadata tables.
+- Preserved all original files unmodified; did not clean, impute, normalize, aggregate, merge, engineer features, train models, or inspect weather, genotype, or environmental covariate files.
+
+### Methodology & Implementation Details
+- **Reproducible Loading & Dynamic Computation:** Resolved paths relative to the repository root, inspected headers and sample rows with Pandas' C engine prior to full load, and computed all summary statistics and figure titles dynamically at runtime.
+- **Schema & Scientific Documentation:** Documented soil chemistry and texture measurements in beginner-friendly terms, explicitly separating header-verified units/methods from inferred agronomic meanings and undocumented codes/units.
+- **Data Quality & Physical Plausibility Audits:** Inspected exact duplicates, identifier completeness, string-coerced numerical columns (specifically detecting laboratory below-detection-limit strings), raw CSV NA tokens (`keep_default_na=False`), explicit `+inf`/`-inf`/negative checks, date formats and year alignment, lab-panel block missingness, soil texture composition sums (`% Sand + % Silt + % Clay`), and cation saturation sums — without replacing or removing any values and without treating legitimate zeros as missing.
+- **Granularity, Stability & Cross-Dataset Coverage Audits:** Audited `Env` primary-key uniqueness, sampling depth and lab distribution, diagnostic within-site cross-year variability (distinguishing stable physical/chemical properties from mobile seasonal nutrients), and read-only `Env` overlap across trait, metadata, and soil datasets by year (including 2014 absence and multi-year coverage gaps).
+- **Preliminary Eligibility & Leakage Classification:** Classified all soil columns across six eligibility categories, flagging administrative/post-season fields (`Date Reported`, `Comments`) as provisional leakage risks and noting sampling-timing sensitivity for mobile nutrients (`DEC-009`).
+
+### Verification & Output Hygiene
+- Executed all code cells cleanly from a fresh `g2f-maize-2026` kernel with zero errors and zero warnings.
+- Archived complete data-derived findings locally in `docs/SOIL_DATA_EDA.md` and generated four local aggregate plots under `reports/figures/local/`.
+- Added `docs/SOIL_DATA_EDA.md` to `.gitignore` and stripped all cell outputs and execution counts from `notebooks/03_soil_data_eda.ipynb` prior to commit.
+
+### Unresolved Technical Questions (Tracked for Phase 2.5+ / Phase 3)
+1. **2026 Test Soil Availability & Schema:** Confirm which soil variables, laboratories, and test environments are populated in 2026 testing files before finalizing soil feature inclusion.
+2. **Missing-Year & Incomplete-Coverage Strategy:** Decide in Phase 3 how to handle missing soil coverage (including the complete absence of 2014 soil records and partial coverage in subsequent seasons) without inducing temporal leakage.
+3. **Below-Detection-Limit Handling:** Define a reproducible Phase 3 conversion strategy for censored laboratory string tokens in saturation columns.
+4. **Undocumented Units & Cross-Lab Equivalence:** Verify units for sampling depth, coding rules for numeric texture codes, and analytical equivalence across testing laboratories.
+5. **Sampling-Timing Leakage Audit:** Assess whether late-season or post-season soil sampling affects mobile nutrient measurements relative to pre-season samples.
+
+### Next Step
+- Await user approval before proceeding to **Phase 2.5**.
+
 
 
 

@@ -123,4 +123,20 @@ This document tracks significant technical, methodological, and architectural de
 - **Alternatives Considered:** Pre-approving coordinates or management columns for modeling during EDA — rejected until 2026 test metadata availability, formatting consistency, and anomaly resolution are verified.
 - **Validation Evidence:** Verified via fresh-kernel execution of [notebooks/02_metadata_eda.ipynb](../notebooks/02_metadata_eda.ipynb) and detailed local findings in `docs/METADATA_EDA.md`.
 
+---
+
+## DEC-009 — Provisional Soil Feature Eligibility, Sampling-Timing & Censored-Value Guardrails
+
+- **Date:** 2026-11-27
+- **Status:** Proposed *(Provisional — pending 2026 test-schema & timing verification)*
+- **Context:** Phase 2.4 soil EDA revealed multi-lab analyte panel differences, censored below-detection-limit strings in cation saturation columns, incomplete historical environment/year coverage (including absent 2014 records), and a subset of late-season or post-season lab receipts/comments.
+- **Decision:**
+  1. Provisionally exclude administrative/post-season soil fields (`Date Reported`, `Comments`) from direct prediction inputs and flag mobile nutrients (`Nitrate-N ppm N`, `lbs N/A`) for sampling-timing review before Phase 3 modeling.
+  2. Defer numeric conversion of censored below-detection-limit tokens, lab-panel harmonization, undocumented code interpretation (`Texture No`, `E Depth` units), and ultra-sparse micronutrient filtering to Phase 3 preprocessing after auditing 2026 test soil availability.
+  3. Enforce many-to-one **left joins** on `Env` when integrating soil data in Phase 3+ so trait rows lacking soil measurements are never silently dropped; never classify legitimate zero soil measurements (e.g., neutral/alkaline `%H Sat`) as missing.
+- **Rationale:** Preserves raw data integrity during EDA, prevents leakage from post-season reporting artifacts, and avoids premature assumptions about 2026 testing soil schema or laboratory panels.
+- **Alternatives Considered:** Immediately dropping sparse soil columns, replacing censored strings, or imputing missing soil years during EDA — rejected to preserve strict Phase 2 read-only boundaries.
+- **Validation Evidence:** Fresh-kernel execution of [notebooks/03_soil_data_eda.ipynb](../notebooks/03_soil_data_eda.ipynb) and local report `docs/SOIL_DATA_EDA.md`.
+
+
 

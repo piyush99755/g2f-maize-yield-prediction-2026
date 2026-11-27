@@ -161,5 +161,6 @@ desktop.ini
 # Local data-derived EDA reports & visualizations (pending sharing clarification)
 # ------------------------------------------------------------------------------
 docs/METADATA_EDA.md
+docs/SOIL_DATA_EDA.md
 reports/figures/local/
 
